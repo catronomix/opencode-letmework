@@ -1,0 +1,30 @@
+# opencode-letmework — config
+#
+# Paths may be absolute, or relative to the session's working directory.
+# This file is re-read whenever it changes; no restart needed.
+
+# Seconds to wait before auto-approving. The permission prompt stays visible
+# during that window, so a user who is present can still reject it.
+waitseconds: 5
+
+# Appended to the current folder's name to build the sibling work folder that
+# needs no permission: ../<folder><suffix>
+suffix: -wt
+
+# Folders (and everything below them) that never need a permission prompt,
+# as long as check 1 passes (the session folder is a git repository).
+extra-folders:
+  - C:\temp\
+
+# Folders the agent may not touch directly, but may create and use subfolders
+# inside.
+create-and-use:
+  - C:\Users\catronomix\AppData\Local\Temp\opencode
+
+# Permission actions that may be auto-approved. Anything else always prompts.
+# Only path-shaped resources are auto-approved, so command text never matches.
+actions:
+  - read
+  - edit
+  - write
+  - external_directory

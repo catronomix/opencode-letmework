@@ -1,0 +1,37 @@
+{
+  "name": "opencode-letmework",
+  "version": "0.1.0",
+  "description": "OpenCode plugin that auto-approves permission prompts for the project's sibling work folder after a short, interruptible delay.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "permissions",
+    "worktree"
+  ],
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": [
+    "index.ts",
+    "logic.ts",
+    "config.example.yaml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test logic.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22.6"
+  },
+  "dependencies": {
+    "@opencode/plugin": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}
