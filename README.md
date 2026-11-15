@@ -61,6 +61,9 @@ actions:
   is not.
 - `actions` — permission actions eligible for auto-approval. Defaults to `read`,
   `edit`, `write`, `external_directory`.
+- `decision` — how the auto-approval is recorded: `always` (default) saves the
+  approval so the same target stops prompting, `once` answers only that single
+  request and the next one prompts again (with the same grace period).
 
 Point the plugin at another config file with a plugin option:
 
@@ -85,7 +88,8 @@ project, symlink into `<project>\.opencode\plugins\` instead.
 
 ## Notes
 
-- Each request is answered with `once`; a rejection by the user is respected
+- Each request is answered with `always` by default, so the work folder stops
+  prompting after the first approval; a rejection by the user is respected
   because the reply is skipped once the request is no longer pending.
 - The plugin logs each decision to the server log (`letmework: ...`), so
   `~/.local/share/opencode/log/opencode.log` shows why something was or was not

@@ -77,7 +77,7 @@ test("approves a work-folder request after the grace period", async () => {
   await cleanup?.()
 
   assert.equal(replies.length, 1)
-  assert.deepEqual(replies[0], { sessionID: "ses_1", requestID: "per_1", decision: "once" })
+  assert.deepEqual(replies[0], { sessionID: "ses_1", requestID: "per_1", decision: "always" })
 })
 
 test("keeps the user's answer when the request is no longer pending", async () => {

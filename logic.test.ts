@@ -22,6 +22,7 @@ function config(overrides: Partial<Config> = {}): Config {
     extraFolders: [],
     createAndUse: [],
     actions: [...DEFAULT_ACTIONS],
+    decision: "always",
     ...overrides,
   }
 }
@@ -75,6 +76,13 @@ test("parseConfig falls back for missing or nonsense values", () => {
   assert.equal(parsed.waitseconds, 5)
   assert.equal(parsed.suffix, "-wt")
   assert.deepEqual(parsed.actions, DEFAULT_ACTIONS)
+})
+
+test("parseConfig reads the decision mode and defaults to always", () => {
+  assert.equal(parseConfig("decision: always\n").decision, "always")
+  assert.equal(parseConfig("decision: once\n").decision, "once")
+  assert.equal(parseConfig("decision: nonsense\n").decision, "always")
+  assert.equal(parseConfig("").decision, "always")
 })
 
 test("isInside matches the folder and its children only when asked", () => {

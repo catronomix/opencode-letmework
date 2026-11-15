@@ -18,7 +18,11 @@ export type Config = {
   createAndUse: string[]
   /** Permission actions eligible for auto-approval. */
   actions: string[]
+  /** How an auto-approval is recorded: `always` saves it, `once` does not. */
+  decision: Decision
 }
+
+export type Decision = "always" | "once"
 
 export const DEFAULT_ACTIONS = ["read", "edit", "write", "external_directory"]
 
@@ -28,6 +32,7 @@ export const DEFAULT_CONFIG: Config = {
   extraFolders: [],
   createAndUse: [],
   actions: [...DEFAULT_ACTIONS],
+  decision: "always",
 }
 
 export type PermissionRequest = {
@@ -139,12 +144,17 @@ export function parseConfig(text: string): Config {
 
   const actions = strings(raw["actions"]).map((action) => action.toLowerCase())
 
+  const decisionValue = raw["decision"]
+  const rawDecision = (Array.isArray(decisionValue) ? (decisionValue[0] ?? "") : (decisionValue ?? "")).trim().toLowerCase()
+  const decision: Decision = rawDecision === "once" ? "once" : "always"
+
   return {
     waitseconds,
     suffix,
     extraFolders: strings(raw["extra-folders"]),
     createAndUse: strings(raw["create-and-use"]),
     actions: actions.length > 0 ? actions : [...DEFAULT_ACTIONS],
+    decision,
   }
 }
 

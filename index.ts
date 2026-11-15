@@ -113,9 +113,13 @@ export default Plugin.define({
       }
 
       // The prompt is already visible. Leave it up for a moment so a user who is
-      // watching can still reject it before we answer for them.
-      const wait = config().waitseconds
-      console.error(`letmework: auto-approving ${label} in ${wait}s (${decision.reason})`)
+      // watching can still reject it before we answer for them. The reply is
+      // saved, so later requests for the same folder do not prompt at all.
+      const current = config()
+      const wait = current.waitseconds
+      console.error(
+        `letmework: auto-approving ${label} in ${wait}s (${decision.reason}, ${current.decision})`,
+      )
       await sleep(wait * 1000, controller.signal)
       if (controller.signal.aborted) return
 
@@ -130,7 +134,7 @@ export default Plugin.define({
         await ctx.permission.reply({
           sessionID: request.sessionID,
           requestID: request.id,
-          decision: "once",
+          decision: config().decision,
         })
       } catch (error) {
         console.error(`letmework: could not auto-approve ${label}`, error)

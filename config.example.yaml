@@ -28,3 +28,7 @@ actions:
   - edit
   - write
   - external_directory
+
+# How the auto-approval is recorded. `always` saves it, so the same target stops
+# prompting; `once` answers a single request and the next one prompts again.
+decision: always
