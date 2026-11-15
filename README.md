@@ -96,6 +96,6 @@ project, symlink into `<project>\.opencode\plugins\` instead.
 
 ```powershell
 npm install
-npm test        # node --test logic.test.ts
+npm test        # node --test logic.test.ts plugin.test.ts
 npm run typecheck
 ```
