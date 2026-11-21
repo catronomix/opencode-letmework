@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs"
 import { homedir } from "node:os"
-import { join } from "node:path"
+import { basename, dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { Plugin } from "@opencode/plugin"
@@ -41,8 +41,8 @@ type Loaded = {
 }
 
 function pluginDirectory(): string {
-  const dirname = (import.meta as { dirname?: string }).dirname
-  return dirname ?? fileURLToPath(new URL(".", import.meta.url))
+  const meta = (import.meta as { dirname?: string }).dirname
+  return meta ?? fileURLToPath(new URL(".", import.meta.url))
 }
 
 /** `~/.config` unless XDG_CONFIG_HOME says otherwise, on every platform. */
@@ -53,14 +53,17 @@ function configHome(): string {
 
 /**
  * Where a config may live, most specific first: the plugin option, the plugin's
- * own folder (a clone or a dev checkout), and the user config dir (an npm
- * install, which never ships a config).
+ * own folder (a clone or a dev checkout), the package root when the plugin runs
+ * from a built `dist` folder, and the user config dir (an npm install, which
+ * never ships a config).
  */
-function configCandidates(option: unknown): string[] {
+export function configCandidates(option: unknown, pluginDir = pluginDirectory()): string[] {
   if (typeof option === "string" && option.length > 0) {
     return [option.startsWith("~") ? join(homedir(), option.slice(1)) : option]
   }
-  return [join(pluginDirectory(), CONFIG_FILE), join(configHome(), "opencode", USER_CONFIG_FILE)]
+  const local = [join(pluginDir, CONFIG_FILE)]
+  if (basename(pluginDir) === "dist") local.push(join(dirname(pluginDir), CONFIG_FILE))
+  return [...local, join(configHome(), "opencode", USER_CONFIG_FILE)]
 }
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {

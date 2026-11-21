@@ -43,7 +43,9 @@ Config is looked up in this order, first hit wins:
 
 1. the `config` plugin option (see below),
 2. `config.yaml` inside the plugin's own folder (a clone or dev checkout),
-3. `~/.config/opencode/letmework.yaml` (`$XDG_CONFIG_HOME` respected) — the
+3. `config.yaml` in the package root, when the plugin runs from a built `dist`
+   folder,
+4. `~/.config/opencode/letmework.yaml` (`$XDG_CONFIG_HOME` respected) — the
    right place for an npm install, which never ships a config.
 
 ## What it checks
