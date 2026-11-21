@@ -1,6 +1,6 @@
 {
   "name": "@catronomix/opencode-letmework",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publishConfig": {
     "access": "public"
   },
@@ -32,14 +32,11 @@
   "scripts": {
     "build": "tsup",
     "prepack": "npm run build",
-    "test": "node --test logic.test.ts plugin.test.ts",
+    "test": "node --test logic.test.ts plugin.test.ts define.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "engines": {
     "node": ">=20"
-  },
-  "peerDependencies": {
-    "@opencode/plugin": ">=2.3 <3"
   },
   "devDependencies": {
     "@opencode/plugin": "2.3.2",

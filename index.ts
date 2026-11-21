@@ -3,8 +3,7 @@ import { homedir } from "node:os"
 import { basename, dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
-import { Plugin } from "@opencode/plugin"
-
+import { definePlugin } from "./define.ts"
 import {
   DEFAULT_CONFIG,
   activeNotice,
@@ -155,7 +154,7 @@ function validRequest(value: unknown): PermissionAsked | undefined {
   return request as PermissionAsked
 }
 
-export default Plugin.define({
+export default definePlugin({
   id: "letmework",
   async setup(ctx) {
     const cwd = ctx.location.directory
