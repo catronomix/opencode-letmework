@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { test } from "node:test"
 
-import plugin from "./index.ts"
+import plugin, { MAX_PENDING } from "./index.ts"
 
 /** The plugin context type, taken from the setup signature we already have. */
 type Context = Parameters<typeof plugin.setup>[0]
@@ -216,4 +216,58 @@ test("does nothing outside the work folder", async () => {
 
   assert.equal(replies.length, 0)
   assert.equal(notices.length, 0, "a kept prompt needs no explanation")
+})
+
+test("a malformed permission event is dropped instead of rejecting", async () => {
+  const directory = workspace("waitseconds: 0\n")
+  const malformed = [
+    { id: "per_bad_1", sessionID: "ses_1" },
+    { id: "per_bad_2", sessionID: "ses_2", action: "edit", resources: [1, 2] },
+  ] as unknown as { id: string; sessionID: string; action: string; resources: string[] }[]
+
+  const rejected: unknown[] = []
+  const onRejection = (reason: unknown) => {
+    rejected.push(reason)
+  }
+  process.on("unhandledRejection", onRejection)
+
+  const { ctx, replies } = harness({
+    config: join(directory, "config.yaml"),
+    directory,
+    request: malformed[0]!,
+    requests: malformed,
+    pending: malformed.map((request) => ({ id: request.id })),
+  })
+
+  const cleanup = await plugin.setup(ctx)
+  await delay(80)
+  await cleanup?.()
+  process.off("unhandledRejection", onRejection)
+
+  assert.deepEqual(rejected, [], "nothing may escape as an unhandled rejection")
+  assert.equal(replies.length, 0, "a malformed request is left to the user")
+})
+
+test("a burst of prompts is capped instead of piling up", async () => {
+  const directory = workspace("waitseconds: 0.3\n")
+  const requests = Array.from({ length: MAX_PENDING + 2 }, (_, index) => ({
+    id: `per_burst_${index}`,
+    sessionID: "ses_burst",
+    action: "edit",
+    resources: [join(directory + "-wt", "a.ts")],
+  }))
+
+  const { ctx, replies } = harness({
+    config: join(directory, "config.yaml"),
+    directory,
+    request: requests[0]!,
+    requests,
+    pending: requests.map((request) => ({ id: request.id })),
+  })
+
+  const cleanup = await plugin.setup(ctx)
+  await delay(600)
+  await cleanup?.()
+
+  assert.equal(replies.length, MAX_PENDING)
 })
