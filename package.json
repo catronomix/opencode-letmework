@@ -7,6 +7,10 @@
   "description": "OpenCode plugin that auto-approves permission prompts for the project's sibling work folder after a short, interruptible delay.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/catronomix/opencode-letmework.git"
+  },
   "keywords": [
     "opencode",
     "opencode-plugin",
@@ -14,27 +18,33 @@
     "worktree"
   ],
   "exports": {
-    ".": "./index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "files": [
-    "index.ts",
-    "logic.ts",
+    "dist",
     "config.example.yaml",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
+    "build": "tsup",
+    "prepack": "npm run build",
     "test": "node --test logic.test.ts plugin.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "engines": {
-    "node": ">=22.6"
+    "node": ">=20"
   },
-  "dependencies": {
-    "@opencode/plugin": "latest"
+  "peerDependencies": {
+    "@opencode/plugin": ">=2.3 <3"
   },
   "devDependencies": {
+    "@opencode/plugin": "2.3.2",
     "@types/node": "^22.10.2",
+    "tsup": "^9.0.0",
     "typescript": "^5.7.2"
   }
 }

@@ -189,10 +189,6 @@ export function isInside(child: string, parent: string, includeSelf: boolean): b
   return target.startsWith(`${root}/`)
 }
 
-export function hasGlob(resource: string): boolean {
-  return GLOB_CHAR.test(resource)
-}
-
 /**
  * Path part of a resource before the first glob character. Rules in OpenCode are
  * glob patterns, so containment is judged on that literal prefix; a wildcard can
