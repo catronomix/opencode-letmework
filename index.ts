@@ -66,6 +66,15 @@ export function configCandidates(option: unknown, pluginDir = pluginDirectory())
   return [...local, join(configHome(), "opencode", USER_CONFIG_FILE)]
 }
 
+/**
+ * The example config ships at the package root, which sits one level up when the
+ * plugin runs from a built `dist` folder.
+ */
+export function exampleCandidate(pluginDir = pluginDirectory()): string {
+  const root = basename(pluginDir) === "dist" ? dirname(pluginDir) : pluginDir
+  return join(root, EXAMPLE_FILE)
+}
+
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   if (ms <= 0) return Promise.resolve()
   return new Promise((done) => {
@@ -152,13 +161,13 @@ export default Plugin.define({
     const cwd = ctx.location.directory
     const paths = configCandidates((ctx.options as { config?: unknown } | undefined)?.config)
     const load = configLoader(paths)
-    const examplePath = join(pluginDirectory(), EXAMPLE_FILE)
+    const examplePath = exampleCandidate()
 
     const start = load()
     if (start.state !== "active") {
       console.error(
         `letmework: idle, no usable config (${start.state}: ${start.path}). ` +
-          `Copy ${examplePath} there to enable it.`,
+          `Copy "${examplePath}" to "${start.path}" to enable it.`,
       )
     }
 
