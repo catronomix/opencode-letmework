@@ -7,6 +7,11 @@
   "description": "OpenCode plugin that auto-approves permission prompts for the project's sibling work folder after a short, interruptible delay.",
   "type": "module",
   "license": "MIT",
+  "author": "Innocent Coppieters",
+  "homepage": "https://github.com/catronomix/opencode-letmework",
+  "bugs": {
+    "url": "https://github.com/catronomix/opencode-letmework/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/catronomix/opencode-letmework.git"
