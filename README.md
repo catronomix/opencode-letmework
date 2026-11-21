@@ -34,6 +34,9 @@ To turn it on, copy the example config and edit it:
 ...
 ```
 
+The example lives at the **package root**, never inside `dist/`, so the hint
+stays correct for a built install.
+
 Once a config is loaded and the plugin actually answers a prompt, it shows a
 similar one-time note in that session: what it approved, which rule allowed it,
 where the config lives, and how to make it quieter. That note is the onboarding

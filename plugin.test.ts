@@ -1,10 +1,11 @@
 import assert from "node:assert/strict"
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { test } from "node:test"
 
-import plugin, { MAX_PENDING, configCandidates } from "./index.ts"
+import plugin, { MAX_PENDING, configCandidates, exampleCandidate } from "./index.ts"
+import { inactiveNotice } from "./logic.ts"
 
 /** The plugin context type, taken from the setup signature we already have. */
 type Context = Parameters<typeof plugin.setup>[0]
@@ -288,4 +289,26 @@ test("a built dist folder also tries the package-root config before the user con
   assert.match(checkout[1]!, /letmework\.yaml$/)
 
   assert.deepEqual(configCandidates(join(root, "custom.yaml"), dist), [join(root, "custom.yaml")])
+})
+
+test("a built dist folder points the copy hint at the shipped package-root example", () => {
+  const root = mkdtempSync(join(tmpdir(), "letmework-example-"))
+  const dist = join(root, "dist")
+  mkdirSync(dist, { recursive: true })
+  const example = join(root, "config.example.yaml")
+  writeFileSync(example, "waitseconds: 0\n")
+
+  const fromDist = exampleCandidate(dist)
+  assert.equal(fromDist, example)
+  assert.ok(existsSync(fromDist), "the hint must point at a file that ships")
+  assert.deepEqual(exampleCandidate(root), example, "a checkout finds it in place")
+
+  const notice = inactiveNotice({
+    configPath: join(root, "letmework.yaml"),
+    examplePath: fromDist,
+    platform: "win32",
+    reason: `${join(root, "letmework.yaml")} not found`,
+  })
+  assert.ok(notice.includes(fromDist), "the notice names the real example path")
+  assert.ok(!notice.includes(dist), "no hint may point inside dist/")
 })
