@@ -228,8 +228,8 @@ export default Plugin.define({
       if (controller.signal.aborted) return
 
       try {
-        const pending = (await ctx.permission.list({ sessionID: request.sessionID })) as unknown
-        const list = pendingList(pending)
+        const raw = (await ctx.permission.list({ sessionID: request.sessionID })) as unknown
+        const list = pendingList(raw)
         const stillPending = list.some((item) => item.id === request.id)
         if (!stillPending) {
           console.error(`letmework: kept the user's answer for ${label}`)
