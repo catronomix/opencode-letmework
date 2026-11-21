@@ -22,6 +22,8 @@ const USER_CONFIG_FILE = "letmework.yaml"
 const EXAMPLE_FILE = "config.example.yaml"
 /** Guard against a runaway loop if the same request is announced twice. */
 const SEEN_LIMIT = 256
+/** Cap on approvals in flight, so a burst of prompts cannot pile up. */
+export const MAX_PENDING = 8
 /** Storage key for the one-time onboarding notice. */
 const NOTICE_KEY = "letmework.notice"
 
@@ -126,6 +128,21 @@ function pendingList(value: unknown): readonly { id: string }[] {
   return Array.isArray(data) ? (data as readonly { id: string }[]) : []
 }
 
+/**
+ * Events are untrusted input. Anything without a usable id, session, action and
+ * string resources is dropped rather than taken apart further down.
+ */
+function validRequest(value: unknown): PermissionAsked | undefined {
+  const request = value as Partial<PermissionAsked> | undefined
+  if (!request) return undefined
+  if (typeof request.id !== "string" || !request.id) return undefined
+  if (typeof request.sessionID !== "string") return undefined
+  if (typeof request.action !== "string") return undefined
+  if (!Array.isArray(request.resources)) return undefined
+  if (!request.resources.every((resource) => typeof resource === "string")) return undefined
+  return request as PermissionAsked
+}
+
 export default Plugin.define({
   id: "letmework",
   async setup(ctx) {
@@ -145,6 +162,7 @@ export default Plugin.define({
     const controller = new AbortController()
     const seen = new Set<string>()
     const noticeShown = new Set<string>()
+    let pending = 0
 
     /**
      * Delivers a one-time note into the session. This is the only surface a
@@ -231,7 +249,13 @@ export default Plugin.define({
         void notice(
           "active",
           request.sessionID,
-          activeNotice({ label, reason: decision.reason, config: current, configPath: loaded.path }),
+          activeNotice({
+            action: request.action,
+            resources: request.resources,
+            reason: decision.reason,
+            config: current,
+            configPath: loaded.path,
+          }),
         )
       }
     }
@@ -242,12 +266,25 @@ export default Plugin.define({
           types: ["permission.asked"],
           signal: controller.signal,
         })) {
-          const data = (event as unknown as { data?: PermissionAsked }).data
-          if (!data || !data.id) continue
-          if (seen.has(data.id)) continue
-          seen.add(data.id)
+          const data = (event as unknown as { data?: unknown }).data
+          const request = validRequest(data)
+          if (!request) {
+            console.error("letmework: ignoring a malformed permission request")
+            continue
+          }
+          if (seen.has(request.id)) continue
+          seen.add(request.id)
           if (seen.size > SEEN_LIMIT) seen.delete(seen.values().next().value as string)
-          void approve(data)
+          if (pending >= MAX_PENDING) {
+            console.error(`letmework: ${MAX_PENDING} approvals already in flight, leaving ${request.id} to the user`)
+            continue
+          }
+          pending += 1
+          void approve(request)
+            .catch((error) => console.error(`letmework: could not handle ${request.id}`, error))
+            .finally(() => {
+              pending -= 1
+            })
         }
       } catch (error) {
         if (!controller.signal.aborted) console.error("letmework: permission stream stopped", error)

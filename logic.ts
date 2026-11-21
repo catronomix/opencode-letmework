@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs"
+import { existsSync, realpathSync } from "node:fs"
 import { basename, dirname, isAbsolute, join, resolve } from "node:path"
 
 /**
@@ -207,6 +207,29 @@ function escapes(resource: string): boolean {
   return /(^|[\\/])\.\.([\\/]|$)/.test(resource)
 }
 
+/**
+ * Real path of a target that may not exist yet: the deepest ancestor that does
+ * exist is resolved (so a symlink or junction on the way is followed) and the
+ * remaining segments are appended unchanged. They cannot be links, since they
+ * are not there.
+ */
+export function realPath(input: string): string {
+  const target = resolve(input)
+  const tail: string[] = []
+  let current = target
+  for (;;) {
+    try {
+      const real = realpathSync.native(current)
+      return tail.length === 0 ? real : join(real, ...tail.reverse())
+    } catch {
+      const parent = dirname(current)
+      if (parent === current) return target
+      tail.push(basename(current))
+      current = parent
+    }
+  }
+}
+
 /* ---------------------------------------------------------------- checks --- */
 
 export type Root = {
@@ -283,7 +306,13 @@ export function evaluate(input: {
     const prefix = staticPrefix(resource)
     const target = isAbsolute(prefix) ? prefix : join(cwd, prefix)
     const root = roots.find((candidate) => isInside(target, candidate.path, candidate.includeSelf))
-    if (!root) outside.push(resource)
+    if (!root) {
+      outside.push(resource)
+      continue
+    }
+    // A link inside an allowed folder can still point out of it, so the
+    // lexical match above is only a fast pre-filter.
+    if (!isInside(realPath(target), realPath(root.path), root.includeSelf)) outside.push(resource)
   }
 
   if (outside.length > 0) {
@@ -296,21 +325,37 @@ export function evaluate(input: {
 /* --------------------------------------------------------------- notices --- */
 
 const INDENT = "  "
+const CONTROL = /[\u0000-\u001f\u007f-\u009f]/g
+/** Longest slice of untrusted text shown for one target. */
+const TARGET_LIMIT = 200
+
+/**
+ * Untrusted request text flattened to a single bounded line: control characters
+ * become spaces, runs of whitespace collapse, and long values are truncated, so
+ * a resource name cannot forge a line of its own in the notice.
+ */
+export function oneLine(value: string, limit = TARGET_LIMIT): string {
+  const flat = value.replace(CONTROL, " ").replace(/\s+/g, " ").trim()
+  return flat.length > limit ? `${flat.slice(0, limit)}...` : flat
+}
 
 /**
  * Shown once inside the session the first time the plugin answers a prompt, so
  * an unaware user learns why a prompt vanished and where the rules live.
  */
 export function activeNotice(input: {
-  label: string
+  action: string
+  resources: readonly string[]
   reason: string
   config: Config
   configPath: string
 }): string {
-  const { label, reason, config, configPath } = input
+  const { action, resources, reason, config, configPath } = input
+  const targets = resources.map((resource) => `\`${oneLine(resource)}\``).join(", ")
+  const label = targets ? `${oneLine(action, 40)} ${targets}` : oneLine(action, 40)
   const lines = [
     `letmework answered a permission prompt for you: ${label}`,
-    `${INDENT}rule:   ${reason}`,
+    `${INDENT}rule:   ${oneLine(reason)}`,
     `${INDENT}grace:  ${config.waitseconds}s - the prompt is left up that long first`,
     `${INDENT}record: ${config.decision === "always" ? "saved, so this target stops prompting" : "this one request only"}`,
     "",
@@ -318,7 +363,7 @@ export function activeNotice(input: {
     "inside an allowed folder and whose action is listed below; everything else",
     `still waits for you. Actions: ${config.actions.join(", ")}.`,
     "",
-    `Config: ${configPath}`,
+    `Config: ${oneLine(configPath)}`,
     `${INDENT}extra-folders:   folders (and everything below) that may be touched`,
     `${INDENT}create-and-use:  folders whose subfolders may be created and used`,
     `${INDENT}actions:         narrow it (e.g. only "read") to be asked more often`,
