@@ -1,4 +1,14 @@
-# opencode-letmework — config
+# opencode-letmework - config
+#
+# READ THIS FIRST
+# ---------------
+# This plugin is a limited YOLO mode: it answers OpenCode permission prompts
+# for you, without you looking, once the grace period runs out. It is only as
+# safe as the folders you list below. The stock settings allow just the
+# project's sibling work folder inside a git repository, so a plain copy of
+# this file is the cautious default - widen it deliberately, one line at a time.
+#
+# If this file is missing, the plugin does nothing at all.
 #
 # Paths may be absolute, or relative to the session's working directory.
 # This file is re-read whenever it changes; no restart needed.
@@ -12,17 +22,19 @@ waitseconds: 5
 suffix: -wt
 
 # Folders (and everything below them) that never need a permission prompt,
-# as long as check 1 passes (the session folder is a git repository).
-extra-folders:
-  - C:\temp\
+# as long as the session folder is a git repository. Leave empty for the
+# cautious default and uncomment to widen.
+extra-folders: []
+#  - /tmp
 
 # Folders the agent may not touch directly, but may create and use subfolders
-# inside.
-create-and-use:
-  - C:\Users\catronomix\AppData\Local\Temp\opencode
+# inside. Leave empty unless you need a scratch area.
+create-and-use: []
+#  - /tmp/opencode
 
 # Permission actions that may be auto-approved. Anything else always prompts.
 # Only path-shaped resources are auto-approved, so command text never matches.
+# Narrow this (e.g. just `read`) if you want to stay in the loop for edits.
 actions:
   - read
   - edit
@@ -32,3 +44,7 @@ actions:
 # How the auto-approval is recorded. `always` saves it, so the same target stops
 # prompting; `once` answers a single request and the next one prompts again.
 decision: always
+
+# The one-time in-session notice that explains what was auto-approved and where
+# this config lives: `once` (default), `always`, or `off`.
+notice: once

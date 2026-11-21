@@ -3,8 +3,10 @@ import { test } from "node:test"
 
 import {
   DEFAULT_ACTIONS,
+  activeNotice,
   allowedRoots,
   evaluate,
+  inactiveNotice,
   isGitRepository,
   isInside,
   parseConfig,
@@ -23,6 +25,7 @@ function config(overrides: Partial<Config> = {}): Config {
     createAndUse: [],
     actions: [...DEFAULT_ACTIONS],
     decision: "always",
+    notice: "once",
     ...overrides,
   }
 }
@@ -83,6 +86,15 @@ test("parseConfig reads the decision mode and defaults to always", () => {
   assert.equal(parseConfig("decision: once\n").decision, "once")
   assert.equal(parseConfig("decision: nonsense\n").decision, "always")
   assert.equal(parseConfig("").decision, "always")
+})
+
+test("parseConfig reads the notice mode and defaults to once", () => {
+  assert.equal(parseConfig("").notice, "once")
+  assert.equal(parseConfig("notice: once\n").notice, "once")
+  assert.equal(parseConfig("notice: always\n").notice, "always")
+  assert.equal(parseConfig("notice: off\n").notice, "off")
+  assert.equal(parseConfig("notice: never\n").notice, "off")
+  assert.equal(parseConfig("notice: nonsense\n").notice, "once")
 })
 
 test("isInside matches the folder and its children only when asked", () => {
@@ -167,4 +179,37 @@ test("allowedRoots honours the configured suffix", () => {
   assert.equal(roots.length, 2)
   assert.match(roots[0]!.path.replaceAll("\\", "/").toLowerCase(), /myproject-worktree$/)
   assert.equal(roots[1]!.includeSelf, true)
+})
+
+test("the active notice explains the rule, the config and how to be quieter", () => {
+  const text = activeNotice({
+    label: "edit C:/GITHUB/myProject-wt/a.ts",
+    reason: "all targets are inside the allowed folders",
+    config: config({ actions: ["read"], decision: "once" }),
+    configPath: "C:/Users/me/.config/opencode/config.yaml",
+  })
+
+  assert.match(text, /limited YOLO mode/)
+  assert.match(text, /C:\/Users\/me\/\.config\/opencode\/config\.yaml/)
+  assert.match(text, /this one request only/)
+  assert.match(text, /Actions: read\./)
+  assert.match(text, /extra-folders/)
+  assert.match(text, /notice: off/)
+})
+
+test("the active notice reports saved approvals", () => {
+  const text = activeNotice({ label: "write x", reason: "r", config: config(), configPath: "c" })
+  assert.match(text, /saved, so this target stops prompting/)
+})
+
+test("the inactive notice gives a platform-appropriate copy command", () => {
+  const base = {
+    configPath: "C:/Users/me/.config/opencode/config.yaml",
+    examplePath: "C:/plugins/opencode-letmework/config.example.yaml",
+    reason: "not found",
+  }
+
+  assert.match(inactiveNotice({ ...base, platform: "win32" }), /Copy-Item "C:\/plugins.*config\.example\.yaml" "C:\/Users/)
+  assert.match(inactiveNotice({ ...base, platform: "linux" }), /^.*cp "C:\/plugins.*config\.example\.yaml" /m)
+  assert.match(inactiveNotice({ ...base, platform: "linux" }), /idle - nothing is being auto-approved/)
 })

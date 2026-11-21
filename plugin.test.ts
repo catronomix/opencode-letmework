@@ -9,12 +9,12 @@ import plugin from "./index.ts"
 /** The plugin context type, taken from the setup signature we already have. */
 type Context = Parameters<typeof plugin.setup>[0]
 
-function workspace(config: string): string {
+function workspace(config: string | undefined): string {
   const root = mkdtempSync(join(tmpdir(), "letmework-"))
   const project = join(root, "myProject")
   mkdirSync(join(project, ".git"), { recursive: true })
   mkdirSync(join(root, "myProject-wt"), { recursive: true })
-  writeFileSync(join(project, "config.yaml"), config)
+  if (config !== undefined) writeFileSync(join(project, "config.yaml"), config)
   return project
 }
 
@@ -23,6 +23,7 @@ type Reply = { sessionID: string; requestID: string; decision: string }
 type Harness = {
   ctx: Context
   replies: Reply[]
+  notices: string[]
   config: string
   directory: string
 }
@@ -32,15 +33,19 @@ function harness(options: {
   directory: string
   request: { id: string; sessionID: string; action: string; resources: string[] }
   pending: readonly { id: string }[]
+  requests?: readonly { id: string; sessionID: string; action: string; resources: string[] }[]
 }): Harness {
   const replies: Reply[] = []
+  const notices: string[] = []
+  const storage = new Map<string, unknown>()
+  const requests = options.requests ?? [options.request]
   const ctx = {
     location: { directory: options.directory },
     options: { config: options.config },
     event: {
       subscribe: () =>
         (async function* () {
-          yield { type: "permission.asked", data: options.request }
+          for (const request of requests) yield { type: "permission.asked", data: request }
         })(),
     },
     permission: {
@@ -49,8 +54,19 @@ function harness(options: {
         replies.push(input)
       },
     },
+    session: {
+      synthetic: async (input: { text: string }) => {
+        notices.push(input.text)
+      },
+    },
+    storage: {
+      get: async (key: string) => storage.get(key),
+      set: async (key: string, value: unknown) => {
+        storage.set(key, value)
+      },
+    },
   } as unknown as Context
-  return { ctx, replies, config: options.config, directory: options.directory }
+  return { ctx, replies, notices, config: options.config, directory: options.directory }
 }
 
 function delay(ms: number): Promise<void> {
@@ -78,6 +94,59 @@ test("approves a work-folder request after the grace period", async () => {
 
   assert.equal(replies.length, 1)
   assert.deepEqual(replies[0], { sessionID: "ses_1", requestID: "per_1", decision: "always" })
+})
+
+test("explains the auto-approval once, so the user learns the plugin is active", async () => {
+  const directory = workspace("waitseconds: 0\n")
+  const first = {
+    id: "per_10",
+    sessionID: "ses_10",
+    action: "edit",
+    resources: [join(directory + "-wt", "a.ts")],
+  }
+  const second = { ...first, id: "per_11", resources: [join(directory + "-wt", "b.ts")] }
+  const { ctx, replies, notices } = harness({
+    config: join(directory, "config.yaml"),
+    directory,
+    request: first,
+    requests: [first, second],
+    pending: [{ id: first.id }],
+  })
+
+  const cleanup = await plugin.setup(ctx)
+  await delay(120)
+  await cleanup?.()
+
+  assert.equal(replies.length, 1, "only the first request is still pending")
+  assert.equal(notices.length, 1, "the notice must not repeat")
+  assert.match(notices[0]!, /limited YOLO mode/)
+  assert.match(notices[0]!, new RegExp(join(directory, "config.yaml").replaceAll("\\", "\\\\")))
+})
+
+test("stays inert without a config file and says so", async () => {
+  const directory = workspace(undefined)
+  const request = {
+    id: "per_12",
+    sessionID: "ses_12",
+    action: "edit",
+    resources: [join(directory + "-wt", "a.ts")],
+  }
+  const missing = join(directory, "nowhere", "config.yaml")
+  const { ctx, replies, notices } = harness({
+    config: missing,
+    directory,
+    request,
+    pending: [{ id: request.id }],
+  })
+
+  const cleanup = await plugin.setup(ctx)
+  await delay(80)
+  await cleanup?.()
+
+  assert.equal(replies.length, 0, "no config means no auto-approval")
+  assert.equal(notices.length, 1)
+  assert.match(notices[0]!, /installed but idle/)
+  assert.match(notices[0]!, /Copy-Item|cp "/)
 })
 
 test("keeps the user's answer when the request is no longer pending", async () => {
@@ -134,7 +203,7 @@ test("does nothing outside the work folder", async () => {
     action: "edit",
     resources: [join(directory, "src", "a.ts")],
   }
-  const { ctx, replies } = harness({
+  const { ctx, replies, notices } = harness({
     config: join(directory, "config.yaml"),
     directory,
     request,
@@ -146,4 +215,5 @@ test("does nothing outside the work folder", async () => {
   await cleanup?.()
 
   assert.equal(replies.length, 0)
+  assert.equal(notices.length, 0, "a kept prompt needs no explanation")
 })

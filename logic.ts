@@ -20,9 +20,14 @@ export type Config = {
   actions: string[]
   /** How an auto-approval is recorded: `always` saves it, `once` does not. */
   decision: Decision
+  /** Whether to show the one-time onboarding notice in the session. */
+  notice: NoticeMode
 }
 
 export type Decision = "always" | "once"
+
+/** `once` shows the onboarding notice a single time, `always` every session. */
+export type NoticeMode = "once" | "always" | "off"
 
 export const DEFAULT_ACTIONS = ["read", "edit", "write", "external_directory"]
 
@@ -33,6 +38,7 @@ export const DEFAULT_CONFIG: Config = {
   createAndUse: [],
   actions: [...DEFAULT_ACTIONS],
   decision: "always",
+  notice: "once",
 }
 
 export type PermissionRequest = {
@@ -40,7 +46,7 @@ export type PermissionRequest = {
   resources: readonly string[]
 }
 
-export type Decision = {
+export type Verdict = {
   allow: boolean
   reason: string
 }
@@ -148,6 +154,10 @@ export function parseConfig(text: string): Config {
   const rawDecision = (Array.isArray(decisionValue) ? (decisionValue[0] ?? "") : (decisionValue ?? "")).trim().toLowerCase()
   const decision: Decision = rawDecision === "once" ? "once" : "always"
 
+  const noticeValue = raw["notice"]
+  const rawNotice = (Array.isArray(noticeValue) ? (noticeValue[0] ?? "") : (noticeValue ?? "")).trim().toLowerCase()
+  const notice: NoticeMode = rawNotice === "off" || rawNotice === "never" ? "off" : rawNotice === "always" ? "always" : "once"
+
   return {
     waitseconds,
     suffix,
@@ -155,6 +165,7 @@ export function parseConfig(text: string): Config {
     createAndUse: strings(raw["create-and-use"]),
     actions: actions.length > 0 ? actions : [...DEFAULT_ACTIONS],
     decision,
+    notice,
   }
 }
 
@@ -244,7 +255,7 @@ export function evaluate(input: {
   isGitRepo: boolean
   config: Config
   request: PermissionRequest
-}): Decision {
+}): Verdict {
   const { cwd, isGitRepo, config, request } = input
   const action = request.action.toLowerCase()
 
@@ -280,4 +291,66 @@ export function evaluate(input: {
   }
 
   return { allow: true, reason: "all targets are inside the allowed folders" }
+}
+
+/* --------------------------------------------------------------- notices --- */
+
+const INDENT = "  "
+
+/**
+ * Shown once inside the session the first time the plugin answers a prompt, so
+ * an unaware user learns why a prompt vanished and where the rules live.
+ */
+export function activeNotice(input: {
+  label: string
+  reason: string
+  config: Config
+  configPath: string
+}): string {
+  const { label, reason, config, configPath } = input
+  const lines = [
+    `letmework answered a permission prompt for you: ${label}`,
+    `${INDENT}rule:   ${reason}`,
+    `${INDENT}grace:  ${config.waitseconds}s - the prompt is left up that long first`,
+    `${INDENT}record: ${config.decision === "always" ? "saved, so this target stops prompting" : "this one request only"}`,
+    "",
+    "This is a limited YOLO mode. It only answers prompts whose every target is",
+    "inside an allowed folder and whose action is listed below; everything else",
+    `still waits for you. Actions: ${config.actions.join(", ")}.`,
+    "",
+    `Config: ${configPath}`,
+    `${INDENT}extra-folders:   folders (and everything below) that may be touched`,
+    `${INDENT}create-and-use:  folders whose subfolders may be created and used`,
+    `${INDENT}actions:         narrow it (e.g. only "read") to be asked more often`,
+    `${INDENT}decision: once   answer each request without saving it`,
+    `${INDENT}notice: off      stop showing this notice`,
+  ]
+  return lines.join("\n")
+}
+
+/** Shown when the plugin is installed but has no config, so it stays inert. */
+export function inactiveNotice(input: {
+  configPath: string
+  examplePath: string
+  platform: NodeJS.Platform
+  reason: string
+}): string {
+  const { configPath, examplePath, platform, reason } = input
+  const copy =
+    platform === "win32"
+      ? `Copy-Item "${examplePath}" "${configPath}"`
+      : `cp "${examplePath}" "${configPath}"`
+
+  return [
+    "letmework is installed but idle - nothing is being auto-approved.",
+    `${INDENT}reason: ${reason}`,
+    `${INDENT}config: ${configPath} (not found)`,
+    "",
+    "To turn it on, copy the example config and edit it:",
+    `${INDENT}${copy}`,
+    "",
+    "The stock config only allows the project's sibling work folder",
+    "(`../<project>-wt`) in git repositories, and leaves every other prompt",
+    "alone. Read the comments in the file before adding folders.",
+  ].join("\n")
 }

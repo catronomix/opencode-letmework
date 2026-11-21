@@ -1,0 +1,24 @@
+{
+  "phase": "prototype",
+  "commands": {
+    "syntax": "npm run typecheck",
+    "test": "npm test",
+    "lint": "",
+    "verify": ""
+  },
+  "conventions": {
+    "base_branch": "master",
+    "branch_prefix": "task/",
+    "commit_style": "meaningful commits, never squash",
+    "notes": "AGENTS.md"
+  },
+  "project": "opencode-letmework",
+  "stack": ["node", "typescript"],
+  "tracker": {
+    "cli": "gh",
+    "kind": "github",
+    "mode": "remote",
+    "repo": "catronomix/opencode-letmework"
+  },
+  "version": 1
+}
