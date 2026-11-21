@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { test } from "node:test"
 
-import plugin, { MAX_PENDING } from "./index.ts"
+import plugin, { MAX_PENDING, configCandidates } from "./index.ts"
 
 /** The plugin context type, taken from the setup signature we already have. */
 type Context = Parameters<typeof plugin.setup>[0]
@@ -270,4 +270,22 @@ test("a burst of prompts is capped instead of piling up", async () => {
   await cleanup?.()
 
   assert.equal(replies.length, MAX_PENDING)
+})
+
+test("a built dist folder also tries the package-root config before the user config", () => {
+  const root = mkdtempSync(join(tmpdir(), "letmework-pkg-"))
+  const dist = join(root, "dist")
+  mkdirSync(dist, { recursive: true })
+
+  const shipped = configCandidates(undefined, dist)
+  assert.equal(shipped.length, 3, "dist, package root, user config")
+  assert.deepEqual(shipped.slice(0, 2), [join(dist, "config.yaml"), join(root, "config.yaml")])
+  assert.match(shipped[2]!, /letmework\.yaml$/)
+
+  const checkout = configCandidates(undefined, root)
+  assert.equal(checkout.length, 2, "a checkout has no package-root fallback")
+  assert.equal(checkout[0], join(root, "config.yaml"))
+  assert.match(checkout[1]!, /letmework\.yaml$/)
+
+  assert.deepEqual(configCandidates(join(root, "custom.yaml"), dist), [join(root, "custom.yaml")])
 })
