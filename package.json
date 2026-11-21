@@ -1,6 +1,9 @@
 {
-  "name": "opencode-letmework",
+  "name": "@catronomix/opencode-letmework",
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "OpenCode plugin that auto-approves permission prompts for the project's sibling work folder after a short, interruptible delay.",
   "type": "module",
   "license": "MIT",
