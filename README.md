@@ -180,8 +180,16 @@ project, symlink into `<project>\.opencode\plugins\` instead.
 
 ## Development
 
+Contributor steps only. What you install from npm, or add with
+`opencode plugin add`, is the prebuilt `dist/` bundle: no build step, no
+lifecycle scripts, no dev toolchain.
+
 ```powershell
+git clone https://github.com/catronomix/opencode-letmework
+cd opencode-letmework
 npm install
-npm test        # node --test logic.test.ts plugin.test.ts
+npm install-scripts approve esbuild   # tsup needs esbuild's platform binary
+npm test                              # node --test logic.test.ts plugin.test.ts
 npm run typecheck
+npm run build                         # writes dist/, which is what the plugin loads
 ```
