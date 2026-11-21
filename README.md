@@ -127,14 +127,14 @@ Add the package to your global config (`~/.config/opencode/opencode.jsonc`):
 
 ```jsonc
 {
-  "plugins": ["@catronomix/opencode-letmework@0.2.0"]
+  "plugins": ["@catronomix/opencode-letmework@0.2.1"]
 }
 ```
 
 or let the CLI write it:
 
 ```powershell
-opencode plugin add @catronomix/opencode-letmework@0.2.0
+opencode plugin add @catronomix/opencode-letmework@0.2.1
 ```
 
 It installs **inactive**. Start a session with an agent that asks for permission,
@@ -184,12 +184,17 @@ Contributor steps only. What you install from npm, or add with
 `opencode plugin add`, is the prebuilt `dist/` bundle: no build step, no
 lifecycle scripts, no dev toolchain.
 
+The published package ships with **no runtime dependencies**: the single SDK
+helper it used (`Plugin.define`, an identity function) lives in `define.ts` as a
+shim, imported type-only so the package still type-checks against the SDK
+version pinned in `devDependencies`.
+
 ```powershell
 git clone https://github.com/catronomix/opencode-letmework
 cd opencode-letmework
 npm install
 npm install-scripts approve esbuild   # tsup needs esbuild's platform binary
-npm test                              # node --test logic.test.ts plugin.test.ts
+npm test                              # node --test logic.test.ts plugin.test.ts define.test.ts
 npm run typecheck
 npm run build                         # writes dist/, which is what the plugin loads
 ```
