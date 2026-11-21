@@ -5,3 +5,6 @@ config.yaml
 .env
 .keys
 dist/
+
+# shared publishing guide lives in the parent folder (C:\GITHUB\PUBLISH-GUIDE.md)
+PUBLISH-GUIDE.md
