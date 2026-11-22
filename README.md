@@ -1,5 +1,9 @@
 # opencode-letmework
 
+[![npm](https://img.shields.io/npm/v/@catronomix/opencode-letmework)](https://www.npmjs.com/package/@catronomix/opencode-letmework)
+[![license](https://img.shields.io/npm/l/@catronomix/opencode-letmework)](LICENSE)
+[![node](https://img.shields.io/node/v/@catronomix/opencode-letmework)](https://nodejs.org)
+
 An OpenCode plugin that makes work folders boring: when an action only touches a
 project's **sibling work folder** (`../<project>-wt`, plus a few folders you
 list), the permission prompt answers itself after a short delay instead of
@@ -127,14 +131,14 @@ Add the package to your global config (`~/.config/opencode/opencode.jsonc`):
 
 ```jsonc
 {
-  "plugins": ["@catronomix/opencode-letmework@0.2.1"]
+  "plugins": ["@catronomix/opencode-letmework"]
 }
 ```
 
 or let the CLI write it:
 
 ```powershell
-opencode plugin add @catronomix/opencode-letmework@0.2.1
+opencode plugin add @catronomix/opencode-letmework
 ```
 
 It installs **inactive**. Start a session with an agent that asks for permission,
