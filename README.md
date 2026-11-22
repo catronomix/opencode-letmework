@@ -1,8 +1,8 @@
 # opencode-letmework
 
-[![npm](https://img.shields.io/npm/v/@catronomix/opencode-letmework)](https://www.npmjs.com/package/@catronomix/opencode-letmework)
-[![license](https://img.shields.io/npm/l/@catronomix/opencode-letmework)](LICENSE)
-[![node](https://img.shields.io/node/v/@catronomix/opencode-letmework)](https://nodejs.org)
+[![npm](https://img.shields.io/npm/v/@catronomix/opencode-letmework?cacheSeconds=3600)](https://www.npmjs.com/package/@catronomix/opencode-letmework)
+[![license](https://img.shields.io/npm/l/@catronomix/opencode-letmework?cacheSeconds=3600)](LICENSE)
+[![node](https://img.shields.io/node/v/@catronomix/opencode-letmework?cacheSeconds=3600)](https://nodejs.org)
 
 An OpenCode plugin that makes work folders boring: when an action only touches a
 project's **sibling work folder** (`../<project>-wt`, plus a few folders you
@@ -156,9 +156,9 @@ Edit that file and the change applies on the next prompt — no restart.
 From a clone instead:
 
 ```powershell
-git clone <this repo> C:\GITHUB\opencode-letmework
-New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.config\opencode\plugins\opencode-letmework" -Target C:\GITHUB\opencode-letmework
-Copy-Item C:\GITHUB\opencode-letmework\config.example.yaml C:\GITHUB\opencode-letmework\config.yaml
+git clone https://github.com/catronomix/opencode-letmework C:\path\opencode-letmework
+New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.config\opencode\plugins\opencode-letmework" -Target C:\path\opencode-letmework
+Copy-Item C:\path\opencode-letmework\config.example.yaml C:\path\opencode-letmework\config.yaml
 ```
 
 Plugins in `~/.config/opencode/plugins/` load automatically. For a single
